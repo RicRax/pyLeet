@@ -1,5 +1,6 @@
 import requests
 import json
+import click
 
 leetCodeUrl = "https://leetcode.com/graphql"
 
@@ -29,6 +30,15 @@ headers = {
     "Connection": "keep-alive",
 }
 
-response = requests.post(leetCodeUrl, json=payload, cookies=cookies, headers=headers)
 
-print(response.text)
+@click.command()
+def getRandomQuestion():
+    response = requests.post(
+        leetCodeUrl, json=payload, cookies=cookies, headers=headers
+    )
+    click.echo("hello")
+    click.echo(response.text)
+
+
+if __name__ == "__main__":
+    getRandomQuestion()
