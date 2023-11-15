@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
 import requests
 import json
 import click
+import subprocess
 
 from conf import graphql
 
@@ -44,7 +46,13 @@ def getQuestion(titleslug):
         cookies=graphql.cookies,
         headers=graphql.headers,
     )
-    click.echo(response.text)
+    python_object = json.loads(response.text)
+    # click.echo_via_pager(python_object["data"]["question"]["content"])
+    subprocess.run(
+        ["w3m", "-dump", "-T", "text/html"],
+        input=python_object["data"]["question"]["content"].encode(),
+        check=True,
+    )
 
 
 @click.group()
