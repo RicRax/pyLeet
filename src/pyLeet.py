@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from click.types import IntParamType
 import requests
+import time
 import json
 import click
 import subprocess
@@ -65,15 +66,31 @@ def runFile(filepath):
     with open(filepath, "r") as file:
         file_content = file.read()
 
-    click.echo(file_content)
+    response = requests.post(
+        "https://leetcode.com/problems/two-sum/submit/",
+        json={"lang": "python3", "question_id": "1", "typed_code": file_content},
+        cookies=graphql.cookies,
+        headers=graphql.headersSubmit,
+    )
+    python_object = json.loads(response.text)
+    submissionId = python_object["submission_id"]
+    status = "PENDING"
 
-    # response = requests.post(
-    #     "https://leetcode.com/problems/submit/",
-    #     data={"lang": "python3", "question_id": "1", "typed_code": file_content},
-    #     cookies=graphql.cookies,
-    #     headers=graphql.headers,
-    # )
-    # click.echo(response.text)
+    while status == "PENDING":
+        response = requests.get(
+            f"https://leetcode.com/submissions/detail/{submissionId}/check/",
+            cookies=graphql.cookies,
+            headers=graphql.headersSubmit,
+        )
+        status = json.loads(response.text)["state"]
+        if status != "PENDING":
+            subprocess.run(
+                ["w3m", "-dump", "-T", "text/html"],
+                input=response.text.encode(),
+                check=True,
+            )
+        else:
+            time.sleep(5)
 
 
 @click.group()
