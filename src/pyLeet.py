@@ -75,6 +75,7 @@ def runFile(filepath):
     python_object = json.loads(response.text)
     submissionId = python_object["submission_id"]
     status = "PENDING"
+    print("Processing request...")
 
     while status == "PENDING":
         response = requests.get(
@@ -84,11 +85,7 @@ def runFile(filepath):
         )
         status = json.loads(response.text)["state"]
         if status != "PENDING":
-            subprocess.run(
-                ["w3m", "-dump", "-T", "text/html"],
-                input=response.text.encode(),
-                check=True,
-            )
+            print(json.loads(response.text)["status_msg"])
         else:
             time.sleep(5)
 
