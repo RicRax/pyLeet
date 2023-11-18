@@ -20,12 +20,15 @@ headers = {
     "Connection": "keep-alive",
 }
 
-headersSubmit = {
-    "content-Type": "application/json",
-    "x-csrftoken": config.csrfToken,
-    "Origin": "https://leetcode.com",
-    "Referer": "https://leetcode.com/problems/two-sum/",
-}
+
+def getHeadersSubmit(slug):
+    return {
+        "content-Type": "application/json",
+        "x-csrftoken": config.csrfToken,
+        "Origin": "https://leetcode.com",
+        "Referer": f"https://leetcode.com/problems/{slug}/",
+    }
+
 
 problemSetQuery = """
 query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {

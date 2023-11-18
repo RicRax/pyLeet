@@ -37,7 +37,8 @@ def getQuestionList(limit):
     )
     python_object = json.loads(response.text)
     for question in python_object["data"]["problemsetQuestionList"]["questions"]:
-        click.echo(question["title"])
+        slug = question["titleSlug"]
+        print(question["title"], f" (Titleslug:{slug})")
 
 
 @click.command()
@@ -62,15 +63,21 @@ def getQuestion(titleslug):
     "filepath",
     type=click.Path(exists=True, file_okay=True, dir_okay=False, path_type=Path),
 )
-def runFile(filepath):
+@click.argument("slug")
+@click.argument("question_id")
+def submitFile(filepath, slug, question_id):
     with open(filepath, "r") as file:
         file_content = file.read()
 
     response = requests.post(
-        "https://leetcode.com/problems/two-sum/submit/",
-        json={"lang": "python3", "question_id": "1", "typed_code": file_content},
+        f"https://leetcode.com/problems/{slug}/submit/",
+        json={
+            "lang": "python3",
+            "question_id": f"{question_id}",
+            "typed_code": file_content,
+        },
         cookies=graphql.cookies,
-        headers=graphql.headersSubmit,
+        headers=graphql.getHeadersSubmit(slug),
     )
     python_object = json.loads(response.text)
     submissionId = python_object["submission_id"]
@@ -81,8 +88,9 @@ def runFile(filepath):
         response = requests.get(
             f"https://leetcode.com/submissions/detail/{submissionId}/check/",
             cookies=graphql.cookies,
-            headers=graphql.headersSubmit,
+            headers=graphql.getHeadersSubmit(slug),
         )
+        print(response.text)
         status = json.loads(response.text)["state"]
         if status != "PENDING":
             print(json.loads(response.text)["status_msg"])
@@ -98,7 +106,7 @@ def cli():
 
 cli.add_command(getQuestion)
 cli.add_command(getQuestionList)
-cli.add_command(runFile)
+cli.add_command(submitFile)
 
 
 if __name__ == "__main__":
