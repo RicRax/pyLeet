@@ -7,7 +7,11 @@ import click
 import subprocess
 from pathlib import Path
 
+from statsd import StatsClient
 from conf import graphql
+
+
+statsd = StatsClient(host="localhost", port=81, prefix="pyLeet")
 
 
 def getQueryQuestionContent(titleSlug):
@@ -21,7 +25,7 @@ def getQueryQuestionContent(titleSlug):
     return {"query": questionQuery, "variables": variables}
 
 
-def getFirst10Problems(limit):
+def getProblemsQuery(limit):
     variables = {"categorySlug": "", "skip": 0, "limit": limit, "filters": {}}
     return {"query": graphql.problemSetQuery, "variables": variables}
 
@@ -29,12 +33,17 @@ def getFirst10Problems(limit):
 @click.command()
 @click.argument("limit", type=int, required=1)
 def getQuestionList(limit):
+    start_time = time.time()
     response = requests.post(
         graphql.leetCodeUrl,
-        json=getFirst10Problems(limit),
+        json=getProblemsQuery(limit),
         cookies=graphql.cookies,
         headers=graphql.headers,
     )
+    end_time = time.time()
+    response_time_ms = (end_time - start_time) * 1000
+    statsd.timing("getQuestionListResponse", response_time_ms)
+
     python_object = json.loads(response.text)
     for question in python_object["data"]["problemsetQuestionList"]["questions"]:
         slug = question["titleSlug"]
@@ -44,12 +53,17 @@ def getQuestionList(limit):
 @click.command()
 @click.argument("titleslug", type=str, required=1)
 def getQuestion(titleslug):
+    start_time = time.time()
     response = requests.post(
         graphql.leetCodeUrl,
         json=getQueryQuestionContent(titleslug),
         cookies=graphql.cookies,
         headers=graphql.headers,
     )
+    end_time = time.time()
+    response_time_ms = (end_time - start_time) * 1000
+    statsd.timing("getQuestionResponse", response_time_ms)
+
     python_object = json.loads(response.text)
     subprocess.run(
         ["w3m", "-dump", "-T", "text/html"],
@@ -69,6 +83,7 @@ def submitFile(filepath, slug, question_id):
     with open(filepath, "r") as file:
         file_content = file.read()
 
+    start_time = time.time()
     response = requests.post(
         f"https://leetcode.com/problems/{slug}/submit/",
         json={
@@ -93,6 +108,9 @@ def submitFile(filepath, slug, question_id):
         print(response.text)
         status = json.loads(response.text)["state"]
         if status != "PENDING":
+            end_time = time.time()
+            response_time_ms = (end_time - start_time) * 1000
+            statsd.timing("submitFileResponse", response_time_ms)
             print(json.loads(response.text)["status_msg"])
         else:
             time.sleep(5)
